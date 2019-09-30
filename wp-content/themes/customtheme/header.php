@@ -3,13 +3,12 @@
 
 <head>
     <meta charset="<?php bloginfo( 'charset' ); ?>">
-    <title><?php bloginfo( 'name' ); ?></title>
     <?php wp_head() ?>
 </head>
 
 <body <?php body_class(); ?>>
 <div class="container">
     <header class="site-header">
-        <h1><?php bloginfo( 'name' ); ?></h1>
-        <h4><?php bloginfo( 'description' ); ?></h4>
+        <?php WP_logo();?>
+        <?php WP_menu('primary-menu');?>
     </header>

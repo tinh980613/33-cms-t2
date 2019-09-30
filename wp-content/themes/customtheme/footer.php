@@ -1,5 +1,7 @@
 <footer class="site-footer">
-    <p><?php bloginfo( 'name' ) ?></p>
+    <div class="copyright">
+        &copy; <?php echo date('Y'); ?> <?php bloginfo('sitename')?>. <?php _e('All rights reserved', 'WP');?>. <?php _e('This website is proundly to use WordPress', 'WP'); ?>
+    </div>
 </footer>
 </div> <!-- closes <div class=container"> -->
 
