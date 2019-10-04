@@ -1,148 +1,139 @@
-<?php
-/**
- * @ thiết lập các hằng dữ liệu quan trọng.
- * Theme_URL = get_stylesheet_directory() - đường dẫn tới thư mục theme
- * CORE = thư mục /core của theme, chứa các file nguồn quan trọng.
- */
-  define( 'THEME_URL', get_stylesheet_directory() );
-  define( 'CORE', THEME_URL . '/core' );
-/**
-  * @ Load file /core/init.php
-  * @ Đây là file cấu hình ban đầu của theme mà sẽ không nên được thay đổi sau này.
-**/
-  require_once( CORE . '/init.php' );
+<?php 
+	require_once get_template_directory(). '/class-wp-bootstrap-navwalker.php';
+	//them anh dai dien
+	add_theme_support( 'post-thumbnails' );
+	//anh se hien thi ngoai blog
+	add_image_size('blog-thumbnail', 700, 350, true);
 
-/**
-  * @ Thiết lập $content_width để khai báo kích thước chiều rộng của nội dung
- **/
+	set_post_thumbnail_size(700 , 350);
+	//anh hien thi trong bai viet
+	add_image_size('post-large', 900, 600, true);
+	//anh hien thi trong phan bai viet lien quan
+	add_image_size('post-small', 250, 200, true);
 
- if ( ! isset( $content_width ) ) {
-/*
-* Nếu biến $content_width chưa có dữ liệu thì gán giá trị cho nó
-*/
-    $content_width = 620;
+
+	//khai bao menu
+	function register_my_menu(){
+		register_nav_menu('header-menu',__('Header Menu'));
+	}
+	add_action('init', 'register_my_menu' );
+
+	function blog_widgets_init(){
+		register_sidebar( array(
+			'name' => __('Sidebar', 'sidebar-blog'),
+			'id' => 'sidebar-blog',
+			'description' => __('Sidebar cua Blog Tinh', 'sidebar-blog'),
+			'before_widget' => '<div id="%1$s" class="card my-4 %2$s">',
+			'after_widget' => '</div>',
+			'before_title' => '<h5 class="card-header">',
+			'after_title' => '</h5>',
+ 		) );
+	}
+	add_action('widgets_init', 'blog_widgets_init');
+
+function blog_pagination(){
+		global $wp_query;
+
+		$pages = paginate_links(array(
+				'format' => '?paged=%#%',
+				'current' => max(1, get_query_var('paged') ),
+				'total' => $wp_query->max_num_pages,
+				'type' => 'array',
+				'prev_next' => true,
+				'prev_text' => __('« Trước'),
+				'next_text' => __('Sau »'),
+			) );
+	
+
+	if(is_array( $pages) ){
+		$paged = ( get_query_var('paged') == 0 ) ? 1: get_query_var('paged');
+		$pagination = '<ul class="pagination justify-content-center mb-4">';
+		foreach ($pages as $page ) {
+			$pagination .= "<li class='page-item'>$page</li>";
+		}
+		$pagination .= '</ul>';
+
+		echo $pagination;
+		}
 }
 
-/**
-  * @ Thiết lập các chức năng sẽ được theme hỗ trợ
-  **/
-  if ( ! function_exists( 'theme_setup' ) ) {
-    /*
-     * Nếu chưa có hàm theme_setup() thì sẽ tạo mới hàm đó
-     */
-    function theme_setup() {
-        /*
-* Thiết lập theme có thể dịch được
-*/
-$language_folder = THEME_URL . '/languages';
-load_theme_textdomain( 'customtheme', $language_folder );
+function blog_breadcrumbs(){
+	if(!is_home()) {
+            echo '<nav class="breadcrumb">';
+                echo '<div class="container">';
 
-/*
-* Tự chèn RSS Feed links trong <head>
-*/
-add_theme_support( 'automatic-feed-links' );
+                echo '<a class="breadcrumb-item" href="'.home_url('/').'">Trang chủ</a>';
+                if (is_category() || is_single()) {
 
-/*
-* Thêm chức năng post thumbnail
-*/
-add_theme_support( 'post-thumbnails' );
+                    $categories = wp_get_post_terms( get_the_id(), 'category' );
 
-/*
-* Thêm chức năng title-tag để tự thêm <title>
-*/
-add_theme_support( 'title-tag' );
+                    if ( $categories ):
+                        foreach ( $categories as $category ): ?>
+                            <a href="<?php echo get_term_link( $category->term_id, 'category' ); ?>" class="breadcrumb-item"><?php echo $category->name; ?></a>
+                        <?php endforeach;
+                    endif;
 
-/*
-* Thêm chức năng post format
-*/
-add_theme_support( 'post-formats',
-    array(
-       'image',
-       'video',
-       'gallery',
-       'quote',
-       'link'
-    )
- );
-
- /**
-* Thêm chức năng custom background
-*/
-$default_background = array(
-   'default-color' => '#e8e8e8',
-);
-add_theme_support( 'custom-background', $default_background );
-
-/*
-* Tạo menu cho theme
-*/
-register_nav_menu ( 'primary-menu', __('Primary Menu', 'customtheme') );
-
-/*
-* Tạo sidebar cho theme
-*/
-$sidebar = array(
-    'name' => __('Main Sidebar', 'customtheme'),
-    'id' => 'main-sidebar',
-    'description' => 'Main sidebar for CustomTheme',
-    'class' => 'main-sidebar',
-    'before_title' => '<h3 class="widgettitle">',
-    'after_title' => '</h3>'
- );
- register_sidebar( $sidebar );
+                    if (is_single()) {
+                        the_title('<span class="breadcrumb-item active">','</span>');
+                    }
+                } elseif (is_page()) {
+                    the_title('<span class="breadcrumb-item active">','</span>');
+                }
+                echo '</div>';
+            echo '</nav>';
+        }
     }
-    add_action ( 'init', 'theme_setup' );
+function blog_related_post($title = 'Bài viết liên quan', $count = 5) {
 
-}
+        global $post;
+        $tag_ids = array();
+        $current_cat = get_the_category($post->ID);
+        $current_cat = $current_cat[0]->cat_ID;
+        $this_cat = '';
+        $tags = get_the_tags($post->ID);
+        if ( $tags ) {
+            foreach($tags as $tag) {
+                $tag_ids[] = $tag->term_id;
+            }
+        } else {
+            $this_cat = $current_cat;
+        }
 
-/**
-*@ Thiết lập hàm hiển thị logo
-*@ WP_logo()
-**/
-if ( ! function_exists( 'WP_logo' ) ) {
-    function WP_logo() {?>
-      <div class="logo">
-   
-        <div class="site-name">
-          <?php if ( is_home() ) {
-            printf(
-              '<h1><a href="%1$s" title="%2$s">%3$s</a></h1>',
-              get_bloginfo( 'url' ),
-              get_bloginfo( 'description' ),
-              get_bloginfo( 'sitename' )
-            );
-          } else {
-            printf(
-              '<p><a href="%1$s" title="%2$s">%3$s</a></p>',
-              get_bloginfo( 'url' ),
-              get_bloginfo( 'description' ),
-              get_bloginfo( 'sitename' )
-            );
-          } // endif ?>
-        </div>
-        <div class="site-description"><?php bloginfo( 'description' ); ?></div>
-   
-      </div>
-    <?php }
-  }
+        $args = array(
+            'post_type'   => get_post_type(),
+            'numberposts' => $count,
+            'orderby'     => 'rand',
+            'tag__in'     => $tag_ids,
+            'cat'         => $this_cat,
+            'exclude'     => $post->ID
+        );
+        $related_posts = get_posts($args);
 
-  /**
-* @ Thiết lập hàm hiển thị menu
-* @ WP_menu( $slug )
-**/
-if ( ! function_exists( 'WP_menu' ) ) {
-    function WP_menu( $slug ) {
-      $menu = array(
-        'theme_location' => $slug,
-        'container' => 'nav',
-        'container_class' => $slug,
-      );
-      wp_nav_menu( $menu );
+        if ( empty($related_posts) ) {
+            $args['tag__in'] = '';
+            $args['cat'] = $current_cat;
+            $related_posts = get_posts($args);
+        }
+        if ( empty($related_posts) ) {
+            return;
+        }
+        $post_list = '';
+        foreach($related_posts as $related) {
+
+            $post_list .= '<div class="media mb-4 ">';
+              $post_list .= '<img class="mr-3 img-thumbnail" style="width: 150px" src="'.get_the_post_thumbnail_url($related->ID, 'post-small').'" alt="Generic placeholder image">';
+                $post_list .= '<div class="media-body align-self-center">';
+                    $post_list .= '<h5 class="mt-0"><a href="'.get_permalink($related->ID).'">'.$related->post_title.'</a></h5>';
+                    $post_list .= get_the_category( $related->ID )[0]->cat_name;
+
+              $post_list .= '</div>';
+            $post_list .= '</div>';
+        }
+
+        return sprintf('
+            <div class="card my-4">
+                <h4 class="card-header">%s</h4>
+                <div class="card-body">%s</div>
+            </div>
+        ', $title, $post_list );
     }
-  }
-
-
-function custom_theme_assets() {
-    wp_enqueue_style( 'style', get_stylesheet_uri() );
-}
-    add_action( 'wp_enqueue_scripts', 'custom_theme_assets' );
