@@ -18,7 +18,7 @@
     <!-- Custom styles for this template -->
     <link href="<?php echo get_template_directory_uri() ?>/css/blog-home.css" rel="stylesheet">
     <link href="<?php echo get_template_directory_uri() ?>/style.css" rel="stylesheet">
-    <?php wp_head() ?>
+    <?php wp_head(); ?>
   </head>
 
   <body style="padding-top:0;">
